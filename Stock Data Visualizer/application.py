@@ -1,6 +1,8 @@
 # This is a test commit
 import requests
 
+print("This is another test")
+
 def fetch_stock_data(symbol, function):
     API_KEY = "9YF471K7UE0O3U9A"  
     BASE_URL = "https://www.alphavantage.co/query"
