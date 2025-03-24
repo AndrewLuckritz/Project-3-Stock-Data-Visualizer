@@ -25,9 +25,17 @@ def fetch_stock_data(symbol, function):
     
 def get_stock_symbol():
     print("\nStock Data Visualizer\n----------------------\n")
-    symbol = input("Enter the stock symbol you are looking for: ")
 
-    return symbol
+    #error checking for valid input
+    while True:
+        symbol = input("Enter the stock symbol you are looking for: ")
+        data = fetch_stock_data(symbol, "GLOBAL_QUOTE")
+
+        if data:
+            return symbol
+        else:
+            print("Please enter a valid stock symbol.\n")
+
 
 
 def get_chart_type():
@@ -35,9 +43,18 @@ def get_chart_type():
     print("1. Bar")
     print("2. Line")
 
-    chart_type = input("\nEnter the chart type you want (1, 2): ")
+    #error checking for valid input
+    while True:
+        chart_type = input("\nEnter the chart type you want (1, 2): ")
 
-    return chart_type
+        if chart_type == "1":
+            return "Bar"
+        elif chart_type == "2":
+            return "Line"
+        else:
+            print("Invalid choice. Please enter 1 for Bar or 2 for Line.\n")
+
+    
 
 def get_time_series():
     print("\nSelect the Time Series of the Chart You Want to Generate\n---------------------------------------------------------\n")
@@ -45,9 +62,23 @@ def get_time_series():
     print("2. Daily")
     print("3. Weekly")
     print("4. Monthly")
-    time_series = input("\nEnter the option (1, 2, 3, 4): ")
 
-    return time_series
+
+    while True:
+        time_series = input("\nEnter the option (1, 2, 3, 4): ")
+
+        if time_series == "1":
+            return "Intraday"
+        elif time_series =="2":
+            return "Daily"
+        elif time_series =="3":
+            return "Weekly"
+        elif time_series =="4":
+            return "Montly"
+        else:
+            print("Invalid choice. Please enter 1, 2, 3, 4.\n")
+
+
 
 def main():
     get_stock_symbol()
