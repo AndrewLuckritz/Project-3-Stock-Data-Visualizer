@@ -52,7 +52,13 @@ def get_date(prompt):
     while True:
         date_str = input(prompt)
         try:
-            return datetime.strptime(date_str, "%Y-%m-%d")
+            entered_date = datetime.strptime(date_str, "%Y-%m-%d")
+            
+            if entered_date > datetime.now():
+                print("The date cannot be in the future. Please enter a valid date.")
+                continue
+            
+            return entered_date
         except ValueError:
             print("Invalid date format. Please use YYYY-MM-DD.")
 
