@@ -4,14 +4,13 @@ import webbrowser
 import threading
 import time
 from datetime import datetime
-# Add these imports for visualization
-import matplotlib.pyplot as plt
-from io import BytesIO
-import base64
+import pygal
+from pygal.style import LightColorizedStyle
+import os
 
-# Your original unchanged functions
+# Fetch stock data from Alpha Vantage
 def fetch_stock_data(symbol, function):
-    API_KEY = "9YF471K7UE0O3U9A"  
+    API_KEY = "710QOQG2JW67UPY0"
     BASE_URL = "https://www.alphavantage.co/query"
     params = {
         "function": function,
@@ -19,13 +18,16 @@ def fetch_stock_data(symbol, function):
         "apikey": API_KEY,
         "datatype": "json"
     }
+    if function == "TIME_SERIES_INTRADAY":
+        params["interval"] = "60min"
     response = requests.get(BASE_URL, params=params)
     return response.json() if response.status_code == 200 else None
 
+# CLI Input functions
 def get_stock_symbol():
     print("\nStock Data Visualizer\n----------------------\n")
     while True:
-        symbol = input("Enter the stock symbol you are looking for: ")
+        symbol = input("Enter the stock symbol you are looking for: ").upper()
         if fetch_stock_data(symbol, "GLOBAL_QUOTE"):
             return symbol
         print("Please enter a valid stock symbol.\n")
@@ -33,7 +35,7 @@ def get_stock_symbol():
 def get_chart_type():
     print("\nChart Types\n-----------\n1. Bar\n2. Line")
     while True:
-        choice = input("\nEnter the chart type you want (1, 2): ")
+        choice = input("Enter the chart type you want (1, 2): ")
         if choice == "1": return "Bar"
         if choice == "2": return "Line"
         print("Invalid choice. Please enter 1 for Bar or 2 for Line.\n")
@@ -41,7 +43,7 @@ def get_chart_type():
 def get_time_series():
     print("\nSelect the Time Series\n----------------------\n1. Intraday\n2. Daily\n3. Weekly\n4. Monthly")
     while True:
-        choice = input("\nEnter the option (1, 2, 3, 4): ")
+        choice = input("Enter the option (1, 2, 3, 4): ")
         if choice == "1": return "TIME_SERIES_INTRADAY"
         if choice == "2": return "TIME_SERIES_DAILY"
         if choice == "3": return "TIME_SERIES_WEEKLY"
@@ -53,11 +55,9 @@ def get_date(prompt):
         date_str = input(prompt)
         try:
             entered_date = datetime.strptime(date_str, "%Y-%m-%d")
-            
             if entered_date > datetime.now():
-                print("The date cannot be in the future. Please enter a valid date.")
+                print("The date cannot be in the future.")
                 continue
-            
             return entered_date
         except ValueError:
             print("Invalid date format. Please use YYYY-MM-DD.")
@@ -70,54 +70,61 @@ def get_date_range():
             return start, end
         print("End date cannot be before start date.\n")
 
+# Flask setup
 app = Flask(__name__)
-
 user_data = {}
 
 @app.route('/')
 def show_results():
     stock_data = fetch_stock_data(user_data['symbol'], user_data['time_series'])
-    
+
+
     if not stock_data:
-        return "<h1>Error loading stock data</h1>"
-    
-    time_series_key = next((k for k in stock_data.keys() if "Time Series" in k), None)
+        return "<h1>Error loading stock data.</h1>"
+
+    if "Error Message" in stock_data:
+        return f"<h1>API Error: {stock_data['Error Message']}</h1>"
+
+    if "Note" in stock_data:
+        return f"<h1>API Limit Reached: {stock_data['Note']}</h1>"
+
+    time_series_key = next((k for k in stock_data if "Time Series" in k), None)
     if not time_series_key:
-        return "<h1>Invalid stock data format</h1>"
-    
-    dates = []
-    prices = []
-    for date_str, values in stock_data[time_series_key].items():
-        date = datetime.strptime(date_str.split()[0], "%Y-%m-%d")
-        if user_data['start_date'] <= date <= user_data['end_date']:
-            dates.append(date)
-            prices.append(float(values["4. close"]))
-    
-    plt.figure(figsize=(10, 4))
+        return "<h1>Unexpected data format.</h1>"
+
+    dates, prices = [], []
+    for date_str, values in sorted(stock_data[time_series_key].items()):
+        try:
+            date = datetime.strptime(date_str.split()[0], "%Y-%m-%d")
+            if user_data['start_date'] <= date <= user_data['end_date']:
+                dates.append(date.strftime("%Y-%m-%d"))
+                prices.append(float(values["4. close"]))
+        except:
+            continue
+
+    if not prices:
+        return "<h1>No data in selected date range.</h1>"
+
     if user_data['chart_type'] == "Bar":
-        plt.bar(dates, prices, color='blue', width=0.5)
+        chart = pygal.Bar(style=LightColorizedStyle, x_label_rotation=45, show_minor_x_labels=False)
     else:
-        plt.plot(dates, prices, 'b-')
-    
-    plt.title(f"{user_data['symbol']} Stock Price")
-    plt.xlabel("Date")
-    plt.ylabel("Closing Price ($)")
-    plt.grid(True)
-    plt.xticks(rotation=45)
-    
-    # Convert plot to HTML image
-    buffer = BytesIO()
-    plt.savefig(buffer, format='png')
-    plt.close()
-    buffer.seek(0)
-    img_data = base64.b64encode(buffer.getvalue()).decode('utf-8')
-    
+        chart = pygal.Line(style=LightColorizedStyle, x_label_rotation=45, show_minor_x_labels=False)
+
+    chart.title = f"{user_data['symbol']} Closing Prices"
+    chart.x_labels = dates[::max(1, len(dates)//10)]
+    chart.add("Close", prices)
+
+    if not os.path.exists("static"):
+        os.makedirs("static")
+
+    chart.render_to_file("static/chart.svg")
+
     return f"""
     <h1>Stock Visualizer</h1>
     <div style="margin: 20px;">
         <p><strong>Symbol:</strong> {user_data['symbol']}</p>
         <p><strong>Date Range:</strong> {user_data['start_date'].strftime('%Y-%m-%d')} to {user_data['end_date'].strftime('%Y-%m-%d')}</p>
-        <img src="data:image/png;base64,{img_data}" style="max-width: 100%;">
+        <object type="image/svg+xml" data="/static/chart.svg" width="90%" height="500"></object>
     </div>
     """
 
@@ -125,31 +132,22 @@ def run_flask():
     app.run(host='0.0.0.0', port=5050)
 
 if __name__ == '__main__':
-    # Collect all user input first
     symbol = get_stock_symbol()
     chart_type = get_chart_type()
     time_series = get_time_series()
     start_date, end_date = get_date_range()
-    user_data.update({
-    'start_date': start_date,
-    'end_date': end_date
-    })
 
-
-
-    # Store the data for the web interface
     user_data.update({
         'symbol': symbol,
         'chart_type': chart_type,
-        'time_series': time_series
+        'time_series': time_series,
+        'start_date': start_date,
+        'end_date': end_date
     })
-    
+
     threading.Thread(target=run_flask, daemon=True).start()
-    
-    # Open the browser after a brief delay
-    webbrowser.open_new('http://127.0.0.1:5050')
-    
-    # Keep the program running
+    webbrowser.open_new("http://127.0.0.1:5050")
+
     try:
         while True:
             time.sleep(1)
