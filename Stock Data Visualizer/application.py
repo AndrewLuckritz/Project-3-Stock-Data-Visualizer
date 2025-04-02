@@ -4,6 +4,10 @@ import webbrowser
 import threading
 import time
 from datetime import datetime
+# Add these imports for visualization
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
 
 # Your original unchanged functions
 def fetch_stock_data(symbol, function):
@@ -60,17 +64,54 @@ def get_date_range():
             return start, end
         print("End date cannot be before start date.\n")
 
-# Web interface setup
 app = Flask(__name__)
 
-# Global variables to store user inputs
 user_data = {}
 
 @app.route('/')
 def show_results():
+    stock_data = fetch_stock_data(user_data['symbol'], user_data['time_series'])
+    
+    if not stock_data:
+        return "<h1>Error loading stock data</h1>"
+    
+    time_series_key = next((k for k in stock_data.keys() if "Time Series" in k), None)
+    if not time_series_key:
+        return "<h1>Invalid stock data format</h1>"
+    
+    dates = []
+    prices = []
+    for date_str, values in stock_data[time_series_key].items():
+        date = datetime.strptime(date_str.split()[0], "%Y-%m-%d")
+        if user_data['start_date'] <= date <= user_data['end_date']:
+            dates.append(date)
+            prices.append(float(values["4. close"]))
+    
+    plt.figure(figsize=(10, 4))
+    if user_data['chart_type'] == "Bar":
+        plt.bar(dates, prices, color='blue', width=0.5)
+    else:
+        plt.plot(dates, prices, 'b-')
+    
+    plt.title(f"{user_data['symbol']} Stock Price")
+    plt.xlabel("Date")
+    plt.ylabel("Closing Price ($)")
+    plt.grid(True)
+    plt.xticks(rotation=45)
+    
+    # Convert plot to HTML image
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    plt.close()
+    buffer.seek(0)
+    img_data = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    
     return f"""
     <h1>Stock Visualizer</h1>
-        <h3>Graph will go here</h3>
+    <div style="margin: 20px;">
+        <p><strong>Symbol:</strong> {user_data['symbol']}</p>
+        <p><strong>Date Range:</strong> {user_data['start_date'].strftime('%Y-%m-%d')} to {user_data['end_date'].strftime('%Y-%m-%d')}</p>
+        <img src="data:image/png;base64,{img_data}" style="max-width: 100%;">
     </div>
     """
 
@@ -88,16 +129,12 @@ if __name__ == '__main__':
     'end_date': end_date
     })
 
-
-
-    # Store the data for the web interface
     user_data.update({
         'symbol': symbol,
         'chart_type': chart_type,
         'time_series': time_series
     })
     
-    # Start Flask in a separate thread
     threading.Thread(target=run_flask, daemon=True).start()
     
     # Open the browser after a brief delay
