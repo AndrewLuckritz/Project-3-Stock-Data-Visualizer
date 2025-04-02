@@ -150,26 +150,40 @@ def show_results():
 
 def run_flask():
     app.run(host='0.0.0.0', port=5050)
+    
+def ask_test_another_stock():
+    while True:
+        another = input("\nWould you like to test another stock? (yes/no): ").lower()
+        if another == "yes":
+            return True
+        elif another == "no":
+            print("\nClosing the application...")
+            return False
+        else:
+            print("Invalid input. Please enter 'yes' or 'no'.")
 
 if __name__ == '__main__':
-    symbol = get_stock_symbol()
-    chart_type = get_chart_type()
-    time_series = get_time_series()
-    start_date, end_date = get_date_range()
+    while True:
+    
+        symbol = get_stock_symbol()
+        chart_type = get_chart_type()
+        time_series = get_time_series()
+        start_date, end_date = get_date_range()
 
-    user_data.update({
-        'symbol': symbol,
-        'chart_type': chart_type,
-        'time_series': time_series,
-        'start_date': start_date,
-        'end_date': end_date
-    })
+        user_data.update({
+            'symbol': symbol,
+            'chart_type': chart_type,
+            'time_series': time_series,
+            'start_date': start_date,
+            'end_date': end_date
+        })
 
-    threading.Thread(target=run_flask, daemon=True).start()
-    webbrowser.open_new("http://127.0.0.1:5050")
+        threading.Thread(target=run_flask, daemon=True).start()
+        webbrowser.open_new("http://127.0.0.1:5050")
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\nClosing the application...")
+        if not ask_test_another_stock():
+            break
+
+        time.sleep(1)
+        
+
