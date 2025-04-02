@@ -129,6 +129,9 @@ if __name__ == '__main__':
     'end_date': end_date
     })
 
+
+
+    # Store the data for the web interface
     user_data.update({
         'symbol': symbol,
         'chart_type': chart_type,
