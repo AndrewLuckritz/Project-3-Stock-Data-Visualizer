@@ -123,12 +123,18 @@ def show_results():
         return "<h1>No data in selected date range.</h1>"
 
     if user_data['chart_type'] == "Bar":
-        chart = pygal.Bar(style=LightColorizedStyle, x_label_rotation=45, show_minor_x_labels=False)
+        chart = pygal.Bar(style=LightColorizedStyle, x_label_rotation=45, show_minor_x_labels=True)
     else:
-        chart = pygal.Line(style=LightColorizedStyle, x_label_rotation=45, show_minor_x_labels=False)
+        chart = pygal.Line(style=LightColorizedStyle, x_label_rotation=45, show_minor_x_labels=True)
 
     chart.title = f"{user_data['symbol']} Stock Data"
-    chart.x_labels = dates[::max(1, len(dates)//10)]
+
+    # Use a dynamic step size to ensure a reasonable number of labels
+    num_labels = 10  # Target number of labels on the x-axis
+    step = max(1, len(dates) // num_labels)  # Adjust step size based on available data
+
+    chart.x_labels = dates[::step]  # Show only a subset of dates
+    chart.x_labels_major = dates[::step]  # Ensure major labels appear at correct intervals
     chart.add("Open", open_prices)
     chart.add("High", high_prices)
     chart.add("Low", low_prices)
