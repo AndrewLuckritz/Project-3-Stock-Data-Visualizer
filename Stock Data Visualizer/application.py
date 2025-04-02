@@ -3,6 +3,7 @@ from flask import Flask
 import webbrowser
 import threading
 import time
+from datetime import datetime
 
 # Your original unchanged functions
 def fetch_stock_data(symbol, function):
@@ -37,11 +38,27 @@ def get_time_series():
     print("\nSelect the Time Series\n----------------------\n1. Intraday\n2. Daily\n3. Weekly\n4. Monthly")
     while True:
         choice = input("\nEnter the option (1, 2, 3, 4): ")
-        if choice == "1": return "Intraday"
-        if choice == "2": return "Daily"
-        if choice == "3": return "Weekly"
-        if choice == "4": return "Monthly"
+        if choice == "1": return "TIME_SERIES_INTRADAY"
+        if choice == "2": return "TIME_SERIES_DAILY"
+        if choice == "3": return "TIME_SERIES_WEEKLY"
+        if choice == "4": return "TIME_SERIES_MONTHLY"
         print("Invalid choice. Please enter 1, 2, 3, or 4.\n")
+
+def get_date(prompt):
+    while True:
+        date_str = input(prompt)
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            print("Invalid date format. Please use YYYY-MM-DD.")
+
+def get_date_range():
+    while True:
+        start = get_date("Enter the start date (YYYY-MM-DD): ")
+        end = get_date("Enter the end date (YYYY-MM-DD): ")
+        if start <= end:
+            return start, end
+        print("End date cannot be before start date.\n")
 
 # Web interface setup
 app = Flask(__name__)
@@ -58,13 +75,20 @@ def show_results():
     """
 
 def run_flask():
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5050)
 
 if __name__ == '__main__':
     # Collect all user input first
     symbol = get_stock_symbol()
     chart_type = get_chart_type()
     time_series = get_time_series()
+    start_date, end_date = get_date_range()
+    user_data.update({
+    'start_date': start_date,
+    'end_date': end_date
+    })
+
+
     
     # Store the data for the web interface
     user_data.update({
@@ -77,7 +101,7 @@ if __name__ == '__main__':
     threading.Thread(target=run_flask, daemon=True).start()
     
     # Open the browser after a brief delay
-    webbrowser.open_new('http://localhost:5000')
+    webbrowser.open_new('http://127.0.0.1:5050')
     
     # Keep the program running
     try:
