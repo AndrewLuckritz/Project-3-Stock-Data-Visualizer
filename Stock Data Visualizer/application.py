@@ -28,9 +28,19 @@ def get_stock_symbol():
     print("\nStock Data Visualizer\n----------------------\n")
     while True:
         symbol = input("Enter the stock symbol you are looking for: ").upper()
-        if fetch_stock_data(symbol, "GLOBAL_QUOTE"):
+        data = fetch_stock_data(symbol, "GLOBAL_QUOTE")
+        
+        # Check if "Global Quote" exists and has valid data
+        if (
+            data
+            and "Global Quote" in data
+            and data["Global Quote"].get("01. symbol")
+            and data["Global Quote"].get("05. price") not in [None, "", "0.0000"]
+        ):
             return symbol
-        print("Please enter a valid stock symbol.\n")
+
+        print("Invalid stock symbol or no data available. Please try again.\n")
+
 
 def get_chart_type():
     print("\nChart Types\n-----------\n1. Bar\n2. Line")
