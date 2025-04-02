@@ -78,7 +78,6 @@ user_data = {}
 def show_results():
     stock_data = fetch_stock_data(user_data['symbol'], user_data['time_series'])
 
-
     if not stock_data:
         return "<h1>Error loading stock data.</h1>"
 
@@ -92,17 +91,25 @@ def show_results():
     if not time_series_key:
         return "<h1>Unexpected data format.</h1>"
 
-    dates, prices = [], []
+    dates = []
+    open_prices = []
+    high_prices = []
+    low_prices = []
+    close_prices = []
+
     for date_str, values in sorted(stock_data[time_series_key].items()):
         try:
             date = datetime.strptime(date_str.split()[0], "%Y-%m-%d")
             if user_data['start_date'] <= date <= user_data['end_date']:
                 dates.append(date.strftime("%Y-%m-%d"))
-                prices.append(float(values["4. close"]))
+                open_prices.append(float(values["1. open"]))
+                high_prices.append(float(values["2. high"]))
+                low_prices.append(float(values["3. low"]))
+                close_prices.append(float(values["4. close"]))
         except:
             continue
 
-    if not prices:
+    if not close_prices:
         return "<h1>No data in selected date range.</h1>"
 
     if user_data['chart_type'] == "Bar":
@@ -110,9 +117,12 @@ def show_results():
     else:
         chart = pygal.Line(style=LightColorizedStyle, x_label_rotation=45, show_minor_x_labels=False)
 
-    chart.title = f"{user_data['symbol']} Closing Prices"
+    chart.title = f"{user_data['symbol']} Stock Data"
     chart.x_labels = dates[::max(1, len(dates)//10)]
-    chart.add("Close", prices)
+    chart.add("Open", open_prices)
+    chart.add("High", high_prices)
+    chart.add("Low", low_prices)
+    chart.add("Close", close_prices)
 
     if not os.path.exists("static"):
         os.makedirs("static")
