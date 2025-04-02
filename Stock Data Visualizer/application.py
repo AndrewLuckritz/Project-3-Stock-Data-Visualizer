@@ -8,7 +8,6 @@ import pygal
 from pygal.style import LightColorizedStyle
 import os
 
-# Fetch stock data from Alpha Vantage
 def fetch_stock_data(symbol, function):
     API_KEY = "710QOQG2JW67UPY0"
     BASE_URL = "https://www.alphavantage.co/query"
@@ -23,14 +22,12 @@ def fetch_stock_data(symbol, function):
     response = requests.get(BASE_URL, params=params)
     return response.json() if response.status_code == 200 else None
 
-# CLI Input functions
 def get_stock_symbol():
     print("\nStock Data Visualizer\n----------------------\n")
     while True:
         symbol = input("Enter the stock symbol you are looking for: ").upper()
         data = fetch_stock_data(symbol, "GLOBAL_QUOTE")
         
-        # Check if "Global Quote" exists and has valid data
         if (
             data
             and "Global Quote" in data
@@ -80,7 +77,6 @@ def get_date_range():
             return start, end
         print("End date cannot be before start date.\n")
 
-# Flask setup
 app = Flask(__name__)
 user_data = {}
 
@@ -129,12 +125,11 @@ def show_results():
 
     chart.title = f"{user_data['symbol']} Stock Data"
 
-    # Use a dynamic step size to ensure a reasonable number of labels
-    num_labels = 10  # Target number of labels on the x-axis
-    step = max(1, len(dates) // num_labels)  # Adjust step size based on available data
+    num_labels = 10
+    step = max(1, len(dates) // num_labels)
 
-    chart.x_labels = dates[::step]  # Show only a subset of dates
-    chart.x_labels_major = dates[::step]  # Ensure major labels appear at correct intervals
+    chart.x_labels = dates[::step]
+    chart.x_labels_major = dates[::step]
     chart.add("Open", open_prices)
     chart.add("High", high_prices)
     chart.add("Low", low_prices)
