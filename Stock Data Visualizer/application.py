@@ -89,7 +89,7 @@ if __name__ == '__main__':
     })
 
 
-    
+
     # Store the data for the web interface
     user_data.update({
         'symbol': symbol,
